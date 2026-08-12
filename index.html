@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Shooter Arcade</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #0b0f19;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 700px;
+            background-color: #121824;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-sizing: border-box;
+        }
+
+        .screen-header {
+            text-align: center;
+            font-weight: 600;
+            font-size: 16px;
+            letter-spacing: 0.5px;
+            margin-bottom: 25px;
+            color: #e2e8f0;
+        }
+
+        /* Arcade Viewport */
+        .arcade-viewport {
+            height: 320px;
+            background-color: #080c14;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 20px;
+            border: 1px solid #1e293b;
+        }
+
+        /* Target Aliens */
+        .target-container {
+            display: flex;
+            justify-content: space-around;
+            padding-top: 30px;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            z-index: 10;
+        }
+
+        .alien-target {
+            width: 55px;
+            height: 50px;
+            border-radius: 50% 50% 40% 40%;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.1s ease, filter 0.1s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .alien-target:hover {
+            transform: scale(1.05);
+        }
+
+        .alien-target::before, .alien-target::after {
+            content: '';
+            position: absolute;
+            top: -6px;
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+        }
+        .alien-target::before { left: 4px; transform: rotate(-15deg); }
+        .alien-target::after { right: 4px; transform: rotate(15deg); }
+
+        /* Color profiles */
+        .alpha-cyan { background-color: #38bdf8; color: #38bdf8; }
+        .alpha-cyan::before, .alpha-cyan::after { background-color: #38bdf8; }
+        
+        .beta-emerald { background-color: #22c55e; color: #22c55e; }
+        .beta-emerald::before, .beta-emerald::after { background-color: #22c55e; }
+
+        .gamma-amber { background-color: #eab308; color: #eab308; }
+        .gamma-amber::before, .gamma-amber::after { background-color: #eab308; }
+
+        .delta-rose { background-color: #ef4444; color: #ef4444; }
+        .delta-rose::before, .delta-rose::after { background-color: #ef4444; }
+
+        /* Alien Eyes */
+        .eyes {
+            display: flex;
+            justify-content: space-between;
+            width: 24px;
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .eye {
+            width: 6px;
+            height: 6px;
+            background-color: white;
+            border-radius: 50%;
+        }
+
+        .alien-target.flash {
+            filter: brightness(1.7) drop-shadow(0 0 15px currentColor);
+            transform: scale(1.15);
+        }
+
+        /* Player Shooter Blaster */
+        .player-blaster {
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-bottom: 35px solid #2563eb;
+            position: absolute;
+            bottom: 25px;
+            left: calc(50% - 20px);
+            transition: left 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            filter: drop-shadow(0 0 8px #2563eb);
+        }
+
+        /* Lasers */
+        .laser-beam {
+            width: 4px;
+            height: 20px;
+            background-color: #60a5fa;
+            position: absolute;
+            border-radius: 2px;
+            box-shadow: 0 0 8px #3b82f6;
+            animation: shootUp 0.35s linear forwards;
+        }
+
+        @keyframes shootUp {
+            0% { bottom: 60px; opacity: 1; }
+            100% { bottom: 260px; opacity: 0; }
+        }
+
+        /* Dashboard Stats */
+        .stats-dashboard {
+            display: flex;
+            justify-content: space-around;
+            background-color: #0c111d;
+            border-radius: 8px;
+            padding: 15px 10px;
+            margin-bottom: 24px;
+            border: 1px solid #1e293b;
+        }
+
+        .stat-node {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #64748b;
+            text-transform: capitalize;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #f8fafc;
+        }
+
+        /* Interactive Control Lanes */
+        .lane-title {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .lane-btn {
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            color: #cbd5e1;
+            padding: 12px 6px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            transition: background-color 0.2s;
+        }
+
+        .lane-btn:hover {
+            background-color: #334155;
+            color: #fff;
+        }
+
+        .color-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        /* Utility Footer Actions */
+        .action-footer {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .btn-utility {
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .btn-replay {
+            background-color: #1e293b;
+            color: #64748b;
+            border: 1px solid #334155;
+        }
+        .btn-replay.ready {
+            color: #cbd5e1;
+            background-color: #334155;
+        }
+
+        .btn-reset {
+            background-color: #2563eb;
+            color: white;
+        }
+
+        .btn-reset:hover {
+            background-color: #1d4ed8;
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <div class="screen-header" id="pattern-match-status">
+        Shoot pattern match: 0 / 5 matched
+    </div>
+
+    <!-- Arcade Window -->
+    <div class="arcade-viewport">
+        <div class="target-container">
+            <div class="alien-target alpha-cyan" id="target-0" onclick="playerShoot(0)">
+                <div class="eyes"><div class="eye"></div><div class="eye"></div></div>
+            </div>
+            <div class="alien-target beta-emerald" id="target-1" onclick="playerShoot(1)">
+                <div class="eyes"><div class="eye"></div><div class="eye"></div></div>
+            </div>
+            <div class="alien-target gamma-amber" id="target-2" onclick="playerShoot(2)">
+                <div class="eyes"><div class="eye"></div><div class="eye"></div></div>
+            </div>
+            <div class="alien-target delta-rose" id="target-3" onclick="playerShoot(3)">
+                <div class="eyes"><div class="eye"></div><div class="eye"></div></div>
+            </div>
+        </div>
+
+        <div class="player-blaster" id="blaster"></div>
+    </div>
+
+    <!-- Score Panel -->
+    <div class="stats-dashboard">
+        <div class="stat-node">
+            <div class="stat-label">Score</div>
+            <div class="stat-value" id="score-val">350</div>
+        </div>
+        <div class="stat-node">
+            <div class="stat-label">Current Wave</div>
+            <div class="stat-value" id="wave-val">4</div>
+        </div>
+        <div class="stat-node">
+            <div class="stat-label">Pattern Len</div>
+            <div class="stat-value" id="len-val">5</div>
+        </div>
+    </div>
+
+    <!-- Bottom Controls mapping layout -->
+    <div class="lane-title">Memory Pattern Lane</div>
+    <div class="button-grid">
+        <button class="lane-btn" onclick="playerShoot(0)">
+            Alpha Cyan
+            <div class="color-dot" style="background-color: #38bdf8;"></div>
+        </button>
+        <button class="lane-btn" onclick="playerShoot(1)">
+            Beta Emerald
+            <div class="color-dot" style="background-color: #22c55e;"></div>
+        </button>
+        <button class="lane-btn" onclick="playerShoot(2)">
+            Gamma Amber
+            <div class="color-dot" style="background-color: #eab308;"></div>
+        </button>
+        <button class="lane-btn" onclick="playerShoot(3)">
+            Delta Rose
+            <div class="color-dot" style="background-color: #ef4444;"></div>
+        </button>
+    </div>
+
+    <div class="action-footer">
+        <button class="btn-utility btn-replay" id="replay-btn" onclick="playSequence()">Replay Pattern Sequence</button>
+        <button class="btn-utility btn-reset" onclick="resetGame()">Reset Arcade Game</button>
+    </div>
+</div>
+<script>
+    let score = 350;
+    let currentWave = 4;
+    let patternLen = 5;
+    let generatedPattern = [];
+    let playerInputPattern = [];
+    let isAcceptingInput = false;
+
+    const blasterPositions = [12.5, 37.5, 62.5, 87.5];
+
+    function initGame() {
+        updateDOM();
+        generateNewPattern();
+        setTimeout(playSequence, 1000);
+    }
+
+    function generateNewPattern() {
+        generatedPattern = [];
+        playerInputPattern = [];
+        for (let i = 0; i < patternLen; i++) {
+            generatedPattern.push(Math.floor(Math.random() * 4));
+        }
+    }
+
+    function playSequence() {
+        isAcceptingInput = false;
+        playerInputPattern = [];
+        document.getElementById('replay-btn').classList.remove('ready');
+        updateStatusText();
+
+        let delay = 600;
+        generatedPattern.forEach((targetId, index) => {
+            setTimeout(() => {
+                flashTarget(targetId);
+            }, index * delay);
+        });
+
+        setTimeout(() => {
+            isAcceptingInput = true;
+            document.getElementById('replay-btn').classList.add('ready');
+        }, generatedPattern.length * delay);
+    }
+
+    function flashTarget(id) {
+        const element = document.getElementById(`target-${id}`);
+        if(element) {
+            element.classList.add('flash');
+            setTimeout(() => {
+                element.classList.remove('flash');
+            }, 300);
+        }
+    }
+
+    function playerShoot(targetId) {
+        if (!isAcceptingInput) return;
+
+        const blaster = document.getElementById('blaster');
+        blaster.style.left = `calc(${blasterPositions[targetId]}% - 20px)`;
+
+        createLaserEffect(blasterPositions[targetId]);
+
+        playerInputPattern.push(targetId);
+        const currentCheckIndex = playerInputPattern.length - 1;
+
+        if (playerInputPattern[currentCheckIndex] === generatedPattern[currentCheckIndex]) {
+            flashTarget(targetId);
+            score += 10;
+            updateStatusText();
+
+            if (playerInputPattern.length === generatedPattern.length) {
+                isAcceptingInput = false;
+                score += 100;
+                currentWave += 1;
+                patternLen = Math.min(patternLen + 1, 8);
+                
+                setTimeout(() => {
+                    generateNewPattern();
+                    updateDOM();
+                    playSequence();
+                }, 800);
+            }
+        } else {
+            flashTarget(targetId);
+            alert("Pattern mismatch! Watch the order and try again.");
+            playerInputPattern = [];
+            updateStatusText();
+        }
+        updateDOM();
+    }
+
+    function createLaserEffect(xPercent) {
+        const viewport = document.querySelector('.arcade-viewport');
+        const laser = document.createElement('div');
+        laser.className = 'laser-beam';
+        laser.style.left = `calc(${xPercent}% - 2px)`;
+        viewport.appendChild(laser);
+        
+        setTimeout(() => { laser.remove(); }, 350);
+    }
+
+    function updateStatusText() {
+        const statusElement = document.getElementById('pattern-match-status');
+        statusElement.innerText = `Shoot pattern match: ${playerInputPattern.length} / ${generatedPattern.length} matched`;
+    }
+
+    function updateDOM() {
+        document.getElementById('score-val').innerText = score;
+        document.getElementById('wave-val').innerText = currentWave;
+        document.getElementById('len-val').innerText = patternLen;
+        updateStatusText();
+    }
+
+    function resetGame() {
+        score = 0;
+        currentWave = 1;
+        patternLen = 3;
+        isAcceptingInput = false;
+        initGame();
+    }
+
+    window.onload = initGame;
+</script>
+</body>
+</html>
