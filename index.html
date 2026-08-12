@@ -150,13 +150,14 @@
 
         /* Dashboard Stats */
         .stats-dashboard {
-            display: flex;
-            justify-content: space-around;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
             background-color: #0c111d;
             border-radius: 8px;
             padding: 15px 10px;
             margin-bottom: 24px;
             border: 1px solid #1e293b;
+            gap: 10px;
         }
 
         .stat-node {
@@ -164,9 +165,10 @@
         }
 
         .stat-label {
-            font-size: 12px;
+            font-size: 11px;
             color: #64748b;
-            text-transform: capitalize;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
             margin-bottom: 4px;
         }
 
@@ -286,15 +288,19 @@
     <div class="stats-dashboard">
         <div class="stat-node">
             <div class="stat-label">Score</div>
-            <div class="stat-value" id="score-val">350</div>
+            <div class="stat-value" id="score-val">0</div>
+        </div>
+        <div class="stat-node">
+            <div class="stat-label">High Score</div>
+            <div class="stat-value" id="highscore-val">0</div>
         </div>
         <div class="stat-node">
             <div class="stat-label">Current Wave</div>
-            <div class="stat-value" id="wave-val">4</div>
+            <div class="stat-value" id="wave-val">1</div>
         </div>
         <div class="stat-node">
             <div class="stat-label">Pattern Len</div>
-            <div class="stat-value" id="len-val">5</div>
+            <div class="stat-value" id="len-val">3</div>
         </div>
     </div>
 
@@ -321,11 +327,9 @@
 
     <div class="action-footer">
         <button class="btn-utility btn-replay" id="replay-btn" onclick="playSequence()">Replay Pattern Sequence</button>
-        <button class="btn-utility btn-reset" onclick="resetGame()">Reset Arcade Game</button>
-    </div>
-</div>
 <script>
     let score = 0;
+    let highScore = parseInt(localStorage.getItem('arcade_highscore')) || 0;
     let currentWave = 1;
     let patternLen = 3;
     let generatedPattern = [];
@@ -388,16 +392,28 @@
         playerInputPattern.push(targetId);
         const currentCheckIndex = playerInputPattern.length - 1;
 
+        // Check if player shot the right target in sequence
         if (playerInputPattern[currentCheckIndex] === generatedPattern[currentCheckIndex]) {
             flashTarget(targetId);
             score += 10;
+            
+            // Track dynamic real-time highscore updates
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('arcade_highscore', highScore);
+            }
             updateStatusText();
 
+            // Completed the sequence completely
             if (playerInputPattern.length === generatedPattern.length) {
                 isAcceptingInput = false;
                 score += 100;
+                if (score > highScore) {
+                    highScore = score;
+                    localStorage.setItem('arcade_highscore', highScore);
+                }
                 currentWave += 1;
-                patternLen = Math.min(patternLen + 1, 8);
+                patternLen = Math.min(patternLen + 1, 10); // scale up length cap
                 
                 setTimeout(() => {
                     generateNewPattern();
@@ -406,10 +422,14 @@
                 }, 800);
             }
         } else {
+            // Player missed/forgot sequence order -> GAME OVER TRIGGERED
             flashTarget(targetId);
-            alert("Pattern mismatch! Watch the order and try again.");
-            playerInputPattern = [];
-            updateStatusText();
+            isAcceptingInput = false;
+            
+            setTimeout(() => {
+                alert(`💥 GAME OVER! 💥\nYou forgot the memory sequence pattern.\n\nFinal Score: ${score}\nWave Reached: ${currentWave}`);
+                resetGame();
+            }, 200);
         }
         updateDOM();
     }
@@ -431,6 +451,7 @@
 
     function updateDOM() {
         document.getElementById('score-val').innerText = score;
+        document.getElementById('highscore-val').innerText = highScore;
         document.getElementById('wave-val').innerText = currentWave;
         document.getElementById('len-val').innerText = patternLen;
         updateStatusText();
