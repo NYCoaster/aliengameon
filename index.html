@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Memory Shooter Arcade</title>
-    <!-- Favicon configuration for GitHub Pages browser tabs -->
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://w3.org viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👾</text></svg>">
+    
+    <!-- Clean Compact Favicon Configuration for GitHub Pages -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://w3.org' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E👾%3C/text%3E%3C/svg%3E">
 
     <style>
         body {
@@ -181,7 +182,6 @@
             color: #f8fafc;
         }
 
-        /* Interactive Control Lanes */
         .lane-title {
             font-size: 13px;
             color: #64748b;
@@ -307,7 +307,6 @@
         </div>
     </div>
 
-    <!-- Bottom Controls mapping layout -->
     <div class="lane-title">Memory Pattern Lane</div>
     <div class="button-grid">
         <button class="lane-btn" onclick="playerShoot(0)">
@@ -329,7 +328,10 @@
     </div>
 
     <div class="action-footer">
-        <button class="btn-utility btn-replay" id="replay-btn" onclick="playSequence()">Replay Pattern Sequence</button>
+        <button class="btn-utility btn-replay" id="replay-btn" onclick="triggerReplaySequence()">Replay Pattern Sequence (-15 pts)</button>
+        <button class="btn-utility btn-reset" onclick="resetGame()">Reset Arcade Game</button>
+    </div>
+</div>
 <script>
     let score = 0;
     let highScore = parseInt(localStorage.getItem('arcade_highscore')) || 0;
@@ -352,6 +354,14 @@
         playerInputPattern = [];
         for (let i = 0; i < patternLen; i++) {
             generatedPattern.push(Math.floor(Math.random() * 4));
+        }
+    }
+
+    function triggerReplaySequence() {
+        if (isAcceptingInput) {
+            score = Math.max(0, score - 15);
+            updateDOM();
+            playSequence();
         }
     }
 
@@ -395,19 +405,16 @@
         playerInputPattern.push(targetId);
         const currentCheckIndex = playerInputPattern.length - 1;
 
-        // Check if player shot the right target in sequence
         if (playerInputPattern[currentCheckIndex] === generatedPattern[currentCheckIndex]) {
             flashTarget(targetId);
             score += 10;
             
-            // Track dynamic real-time highscore updates
             if (score > highScore) {
                 highScore = score;
                 localStorage.setItem('arcade_highscore', highScore);
             }
             updateStatusText();
 
-            // Completed the sequence completely
             if (playerInputPattern.length === generatedPattern.length) {
                 isAcceptingInput = false;
                 score += 100;
@@ -416,7 +423,7 @@
                     localStorage.setItem('arcade_highscore', highScore);
                 }
                 currentWave += 1;
-                patternLen = Math.min(patternLen + 1, 10); // scale up length cap
+                patternLen = Math.min(patternLen + 1, 10);
                 
                 setTimeout(() => {
                     generateNewPattern();
@@ -425,7 +432,6 @@
                 }, 800);
             }
         } else {
-            // Player missed/forgot sequence order -> GAME OVER TRIGGERED
             flashTarget(targetId);
             isAcceptingInput = false;
             
