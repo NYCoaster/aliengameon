@@ -242,12 +242,8 @@
 
         .btn-replay {
             background-color: #1e293b;
-            color: #64748b;
-            border: 1px solid #334155;
-        }
-        .btn-replay.ready {
             color: #cbd5e1;
-            background-color: #334155;
+            border: 1px solid #334155;
         }
 
         .btn-reset {
@@ -340,6 +336,7 @@
     let generatedPattern = [];
     let playerInputPattern = [];
     let isAcceptingInput = false;
+    let activeTimeouts = []; // Array tracker to clear active sequence timers instantly
 
     const blasterPositions = [12.5, 37.5, 62.5, 87.5];
 
@@ -357,31 +354,40 @@
         }
     }
 
+    function clearAllSequenceTimeouts() {
+        activeTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
+        activeTimeouts = [];
+    }
+
     function triggerReplaySequence() {
-        if (isAcceptingInput) {
-            score = Math.max(0, score - 15);
-            updateDOM();
-            playSequence();
-        }
+        // Clear anything flashing currently to prevent stacking or animation skips
+        clearAllSequenceTimeouts();
+        
+        // Always deduct 15 points on replay push (clamped above 0)
+        score = Math.max(0, score - 15);
+        updateDOM();
+        
+        // Replay pattern immediately
+        playSequence();
     }
 
     function playSequence() {
         isAcceptingInput = false;
         playerInputPattern = [];
-        document.getElementById('replay-btn').classList.remove('ready');
         updateStatusText();
 
         let delay = 600;
         generatedPattern.forEach((targetId, index) => {
-            setTimeout(() => {
+            let tId = setTimeout(() => {
                 flashTarget(targetId);
             }, index * delay);
+            activeTimeouts.push(tId);
         });
 
-        setTimeout(() => {
+        let endId = setTimeout(() => {
             isAcceptingInput = true;
-            document.getElementById('replay-btn').classList.add('ready');
         }, generatedPattern.length * delay);
+        activeTimeouts.push(endId);
     }
 
     function flashTarget(id) {
@@ -434,6 +440,7 @@
         } else {
             flashTarget(targetId);
             isAcceptingInput = false;
+            clearAllSequenceTimeouts();
             
             setTimeout(() => {
                 alert(`💥 GAME OVER! 💥\nYou forgot the memory sequence pattern.\n\nFinal Score: ${score}\nWave Reached: ${currentWave}`);
@@ -467,6 +474,7 @@
     }
 
     function resetGame() {
+        clearAllSequenceTimeouts();
         score = 0;
         currentWave = 1;
         patternLen = 3;
